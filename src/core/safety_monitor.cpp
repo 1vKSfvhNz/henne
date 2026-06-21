@@ -14,6 +14,7 @@ SafetyMonitor::~SafetyMonitor() {
     stop();
 }
 
+
 void SafetyMonitor::start() {
     if (running) return;
     running = true;

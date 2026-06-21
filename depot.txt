@@ -1,0 +1,9 @@
+# Créer le dépôt avec la structure existante
+git init
+git add .
+git commit -m "feat: initial project structure for MIHI-CN v2.0"
+
+# Pousser vers GitHub
+git remote add origin https://github.com/1vKSfvhNz/henne
+git branch -M main
+git push -u origin main

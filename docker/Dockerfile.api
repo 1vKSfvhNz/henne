@@ -1,0 +1,21 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Installer les dépendances système
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copier les requirements
+COPY src_python/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copier le code
+COPY src_python/ /app/src_python/
+COPY config/ /app/config/
+
+EXPOSE 8000
+
+CMD ["uvicorn", "src_python.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
