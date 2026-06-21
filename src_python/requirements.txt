@@ -1,0 +1,36 @@
+# Web & API
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+websockets==12.0
+
+# Communication rapide
+pyzmq==25.1.2
+posix-ipc==1.1.1
+
+# Data & IA
+numpy==1.24.3
+opencv-python==4.8.1.78
+Pillow==10.1.0
+torch==2.1.0
+torchvision==0.16.0
+onnx==1.14.1
+onnxruntime==1.16.0
+scipy==1.11.4
+
+# 3D
+trimesh==3.23.5
+pyrender==0.1.45
+
+# Base de données
+asyncpg==0.29.0
+redis==5.0.1
+
+# Utilitaires
+pyyaml==6.0.1
+pydantic==2.5.0
+python-multipart==0.0.6
+aiofiles==23.2.1
+
+# Tests
+pytest==7.4.3
+pytest-asyncio==0.21.1

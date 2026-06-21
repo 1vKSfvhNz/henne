@@ -1,0 +1,1 @@
+"""API REST - Configuration uniquement (non temps réel)"""

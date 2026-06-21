@@ -1,0 +1,64 @@
+src_python/
+├── requirements.txt
+├── setup.py
+├── main.py                          # Point d'entrée unifié
+├── config/
+│   └── settings.py
+├── ipc/                             # COMMUNICATION ULTRA-RAPIDE
+│   ├── __init__.py
+│   ├── shared_memory.py             # Ring buffer <1µs
+│   ├── zeromq_bridge.py             # ZeroMQ pour distribution
+│   ├── unix_socket.py               # Unix Domain Socket (5-10µs)
+│   └── low_latency_publisher.py     # Boucle 1kHz
+├── core/                            # CŒUR MÉTIER
+│   ├── __init__.py
+│   ├── machine_state.py
+│   ├── job_manager.py
+│   └── safety_monitor.py
+├── ai_models/                       # MODÈLES IA
+│   ├── __init__.py
+│   ├── reconstruction/
+│   │   ├── pointnet.py
+│   │   └── inference.py
+│   ├── deformation/
+│   │   ├── spiralnet.py
+│   │   └── inference.py
+│   └── controller/
+│       ├── lstm_controller.py
+│       └── realtime.py
+├── hardware/                        # DRIVERS MATÉRIEL (mockés)
+│   ├── __init__.py
+│   ├── realsense.py
+│   ├── ethercat.py
+│   ├── piezo_head.py
+│   ├── motors.py
+│   └── sensors.py
+├── api/                             # API LENTE (FastAPI)
+│   ├── __init__.py
+│   ├── main.py
+│   ├── routes/
+│   │   ├── scan.py
+│   │   ├── motif.py
+│   │   ├── job.py
+│   │   └── session.py
+│   └── websocket/
+│       └── preview.py
+├── preview/                         # VISUALISATION 3D
+│   ├── __init__.py
+│   ├── renderer.py
+│   └── streaming.py
+├── calibration/                     # CALIBRATION
+│   ├── __init__.py
+│   └── calibrator.py
+├── utils/                           # UTILITAIRES
+│   ├── __init__.py
+│   ├── logger.py
+│   ├── math_utils.py
+│   └── helpers.py
+├── tests/                           # TESTS
+│   ├── test_ipc.py
+│   ├── test_ai.py
+│   └── test_hardware.py
+└── scripts/                         # SCRIPTS UTILITAIRES
+    ├── generate_mock_data.py
+    └── benchmark_latency.py

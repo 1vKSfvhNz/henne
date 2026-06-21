@@ -1,0 +1,112 @@
+cd src
+mkdir build && cd build
+cmake .. -DBUILD_SIMULATION=ON
+make -j4
+./mihi_cn
+
+src/
+├── CMakeLists.txt
+├── main.cpp
+├── main.hpp
+├── core/
+│   ├── CMakeLists.txt
+│   ├── machine_state.hpp
+│   ├── machine_state.cpp
+│   ├── job_manager.hpp
+│   ├── job_manager.cpp
+│   ├── safety_monitor.hpp
+│   └── safety_monitor.cpp
+├── scan3d/
+│   ├── CMakeLists.txt
+│   ├── realsense_capture.hpp
+│   ├── realsense_capture.cpp
+│   ├── mesh_reconstruction.hpp
+│   ├── mesh_reconstruction.cpp
+│   ├── zone_segmentation.hpp
+│   ├── zone_segmentation.cpp
+│   ├── curvature_map.hpp
+│   └── curvature_map.cpp
+├── pattern/
+│   ├── CMakeLists.txt
+│   ├── svg_parser.hpp
+│   ├── svg_parser.cpp
+│   ├── spiralnet_deformer.hpp
+│   ├── spiralnet_deformer.cpp
+│   ├── trajectory_generator.hpp
+│   ├── trajectory_generator.cpp
+│   ├── zone_optimizer.hpp
+│   └── zone_optimizer.cpp
+├── ia/
+│   ├── CMakeLists.txt
+│   ├── realtime_controller.hpp
+│   ├── realtime_controller.cpp
+│   ├── model_inference.hpp
+│   ├── model_inference.cpp
+│   ├── edge_detection.hpp
+│   ├── edge_detection.cpp
+│   └── weights/
+│       └── config.json
+├── hardware/
+│   ├── CMakeLists.txt
+│   ├── ethercat_master.hpp
+│   ├── ethercat_master.cpp
+│   ├── piezo_head.hpp
+│   ├── piezo_head.cpp
+│   ├── linear_actuator.hpp
+│   ├── linear_actuator.cpp
+│   ├── pressure_sensor.hpp
+│   ├── pressure_sensor.cpp
+│   ├── temperature_sensor.hpp
+│   ├── temperature_sensor.cpp
+│   ├── tof_sensor.hpp
+│   └── tof_sensor.cpp
+├── vision/
+│   ├── CMakeLists.txt
+│   ├── highspeed_camera.hpp
+│   ├── highspeed_camera.cpp
+│   ├── edge_tracking.hpp
+│   ├── edge_tracking.cpp
+│   ├── quality_inspection.hpp
+│   ├── quality_inspection.cpp
+│   ├── zone_tracker.hpp
+│   └── zone_tracker.cpp
+├── preview/
+│   ├── CMakeLists.txt
+│   ├── renderer.hpp
+│   ├── renderer.cpp
+│   ├── skin_shader.hpp
+│   ├── skin_shader.cpp
+│   ├── henne_material.hpp
+│   ├── henne_material.cpp
+│   ├── aging_simulation.hpp
+│   ├── aging_simulation.cpp
+│   ├── websocket_stream.hpp
+│   └── websocket_stream.cpp
+├── drying/
+│   ├── CMakeLists.txt
+│   ├── ir_leds.hpp
+│   ├── ir_leds.cpp
+│   ├── humidity_sensor.hpp
+│   └── humidity_sensor.cpp
+├── safety/
+│   ├── CMakeLists.txt
+│   ├── emergency_stop.hpp
+│   ├── emergency_stop.cpp
+│   ├── hand_detection.hpp
+│   ├── hand_detection.cpp
+│   ├── thermal_protection.hpp
+│   ├── thermal_protection.cpp
+│   ├── uv_sterilizer.hpp
+│   └── uv_sterilizer.cpp
+└── utils/
+    ├── CMakeLists.txt
+    ├── logger.hpp
+    ├── logger.cpp
+    ├── json_helper.hpp
+    ├── json_helper.cpp
+    ├── math_helpers.hpp
+    ├── math_helpers.cpp
+    ├── timing.hpp
+    ├── timing.cpp
+    ├── threading_pool.hpp
+    └── threading_pool.cpp
