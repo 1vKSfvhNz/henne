@@ -1,83 +1,172 @@
 import torch
+import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-import numpy as np
 from pathlib import Path
-import logging
+import numpy as np
+from tqdm import tqdm
 from datetime import datetime
+import logging
 
-from .pointnet import PointNetPlusPlus, ScanDataset
+from .pointnet import PointNet
+from .dataset import Scan3DDataset
 
-def train_model(data_dir: Path, epochs=100, batch_size=8):
-    """Entraîne le modèle PointNet++"""
+def train_model(
+    data_dir: Path = Path("data/raw/scans_3d"),
+    epochs: int = 100,
+    batch_size: int = 8,
+    learning_rate: float = 1e-3,
+    num_points: int = 5000,
+    save_dir: Path = Path("models/checkpoints")
+):
+    """Entraîne le modèle PointNet sur les données de scan 3D"""
     
-    # Créer le dataset
-    dataset = ScanDataset(data_dir)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+    # 1. Configuration du logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler('training.log'),
+            logging.StreamHandler()
+        ]
+    )
     
-    # Modèle
-    model = PointNetPlusPlus(num_points=5000)
+    # 2. Préparation des données
+    logging.info("Chargement des données...")
+    dataset = Scan3DDataset(data_dir, num_points=num_points)
+    
+    # Split train/val
+    train_size = int(0.8 * len(dataset))
+    val_size = len(dataset) - train_size
+    train_dataset, val_dataset = torch.utils.data.random_split(
+        dataset, [train_size, val_size]
+    )
+    
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    
+    logging.info(f"Train: {len(train_dataset)} samples, Val: {len(val_dataset)} samples")
+    
+    # 3. Initialisation du modèle
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = PointNet(num_points=num_points, num_classes=4)
     model.to(device)
     
-    # Optimiseur
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    logging.info(f"Modèle sur: {device}")
+    logging.info(f"Nombre de paramètres: {sum(p.numel() for p in model.parameters())}")
+    
+    # 4. Configuration de l'entraînement
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
     
-    # Loss
+    # Losses
     mesh_loss_fn = nn.MSELoss()
-    segmentation_loss_fn = nn.CrossEntropyLoss()
+    class_loss_fn = nn.CrossEntropyLoss()
     
-    # Logging
-    log_dir = Path('logs/training')
-    log_dir.mkdir(parents=True, exist_ok=True)
+    # 5. Boucle d'entraînement
+    best_val_loss = float('inf')
+    save_dir.mkdir(parents=True, exist_ok=True)
     
     for epoch in range(epochs):
-        epoch_loss = 0
-        for batch in dataloader:
-            points = batch['points'].to(device)
-            labels = batch['label'].to(device)
+        # Entraînement
+        model.train()
+        train_loss = 0
+        train_mesh_loss = 0
+        train_class_loss = 0
+        
+        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}")
+        for batch in progress_bar:
+            points = batch['points'].to(device)  # (B, N, 3)
+            zone_labels = batch['zone'].squeeze().to(device)  # (B,)
+            
+            # Transposer pour PointNet: (B, 3, N)
+            points = points.permute(0, 2, 1)
             
             # Forward
-            mesh_pred, seg_pred = model(points)
+            mesh_pred, class_pred = model(points)
             
-            # Loss (sans ground truth pour l'instant, modèle non supervisé)
-            # Ici on utiliserait des données annotées
-            # loss = mesh_loss_fn(mesh_pred, mesh_gt) + segmentation_loss_fn(seg_pred, labels)
+            # Pour l'entraînement, on n'a pas de mesh GT (non supervisé)
+            # On utilise une perte de reconstruction basée sur la cohérence
+            # Pour l'instant, on simule avec une perte nulle
+            loss_mesh = torch.tensor(0.0).to(device)
             
-            # Pour l'exemple, loss simulée
-            loss = torch.tensor(0.5)
+            # Perte de classification
+            loss_class = class_loss_fn(class_pred, zone_labels)
+            
+            # Perte totale (pour l'instant, seulement classification)
+            loss = loss_class
             
             # Backward
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             
-            epoch_loss += loss.item()
+            # Métriques
+            train_loss += loss.item()
+            train_class_loss += loss_class.item()
+            
+            progress_bar.set_postfix({
+                'loss': f'{loss.item():.4f}',
+                'class': f'{loss_class.item():.4f}'
+            })
         
+        # Validation
+        model.eval()
+        val_loss = 0
+        val_class_loss = 0
+        
+        with torch.no_grad():
+            for batch in val_loader:
+                points = batch['points'].to(device).permute(0, 2, 1)
+                zone_labels = batch['zone'].squeeze().to(device)
+                
+                _, class_pred = model(points)
+                loss_class = class_loss_fn(class_pred, zone_labels)
+                
+                val_class_loss += loss_class.item()
+                val_loss += loss_class.item()
+        
+        # Métriques moyennes
+        avg_train_loss = train_loss / len(train_loader)
+        avg_train_class = train_class_loss / len(train_loader)
+        avg_val_loss = val_loss / len(val_loader)
+        avg_val_class = val_class_loss / len(val_loader)
+        
+        # Logging
+        logging.info(
+            f"Epoch {epoch+1}: "
+            f"Train Loss: {avg_train_loss:.4f}, "
+            f"Train Class: {avg_train_class:.4f}, "
+            f"Val Loss: {avg_val_loss:.4f}, "
+            f"Val Class: {avg_val_class:.4f}"
+        )
+        
+        # Scheduler
         scheduler.step()
         
-        # Log
-        logging.info(f"Epoch {epoch}/{epochs}, Loss: {epoch_loss/len(dataloader)}")
+        # Sauvegarde du meilleur modèle
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'val_loss': avg_val_loss,
+                'num_points': num_points
+            }, save_dir / 'best_model.pth')
+            logging.info(f"✅ Meilleur modèle sauvegardé (loss: {avg_val_loss:.4f})")
         
-        # Sauvegarder le modèle
+        # Sauvegarde périodique
         if (epoch + 1) % 10 == 0:
-            torch.save(model.state_dict(), f"{log_dir}/pointnet_epoch_{epoch+1}.pth")
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'val_loss': avg_val_loss
+            }, save_dir / f'checkpoint_epoch_{epoch+1}.pth')
     
+    logging.info("✅ Entraînement terminé !")
     return model
 
-# Exporter en ONNX pour TensorRT
-def export_to_onnx(model, output_path="models/pointnet.onnx"):
-    dummy_input = torch.randn(1, 3, 5000)
-    torch.onnx.export(
-        model,
-        dummy_input,
-        output_path,
-        export_params=True,
-        opset_version=11,
-        do_constant_folding=True,
-        input_names=['input'],
-        output_names=['mesh', 'segmentation'],
-        dynamic_axes={'input': {0: 'batch_size'}}
-    )
-    logging.info(f"Modèle exporté vers {output_path}")
+if __name__ == "__main__":
+    train_model()

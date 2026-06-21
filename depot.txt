@@ -7,3 +7,36 @@ git commit -m "feat: initial project structure for MIHI-CN v2.0"
 git remote add origin https://github.com/1vKSfvhNz/henne
 git branch -M main
 git push -u origin main
+
+pip install open3d scikit-learn matplotlib tensorboard
+
+===============================================================================================================
+# 1. Activer l'environnement
+source venv_henne/bin/activate
+
+# 2. S'assurer que les données sont prêtes
+python -c "from src_python.tools.data_pipeline import DataPipeline; pipeline = DataPipeline(); print(f'Images chargées: {len(pipeline.load_images(\"main\"))}')"
+
+# 3. Lancer l'entraînement
+cd src_python
+python -m ai_models.reconstruction.train_complete --data_dir ../data/raw/scans_3d --epochs 50 --batch_size 8
+
+# 4. Exporter vers ONNX (après entraînement)
+python -m ai_models.reconstruction.export_onnx --model_path models/checkpoints/best_model.pth
+
+===============================================================================================================
+# Vérifier l'état du projet
+tree -L 2
+
+# Lancer l'API
+cd src_python
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+
+# Tester le pipeline de données
+python -c "from tools.data_pipeline import DataPipeline; print(DataPipeline().load_images('main')[0].shape)"
+
+# Entraîner le modèle
+python -m ai_models.reconstruction.train_complete
+
+# Voir les logs
+tail -f training.log
